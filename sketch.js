@@ -4,7 +4,7 @@ let showScreenLayer = false; // Initially, the screen layer with holes is not sh
 let textClicked = false;
 
 let holes = [];
-let numHoles = 8; // 원하는 원의 개수
+let numHoles = 9; // 원하는 원의 개수
 let holeDiameter = 200; // 원의 지름
 let maxAttempts = 100; // 겹치지 않는 위치를 찾기 위한 최대 시도 횟수
 
