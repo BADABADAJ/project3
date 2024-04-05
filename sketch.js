@@ -1,80 +1,175 @@
 // Global variables
-var i = 0;
 let systems = [];
+let showScreenLayer = false; // Initially, the screen layer with holes is not shown
+let textClicked = false;
+
+let holes = [];
+let numHoles = 8; // 원하는 원의 개수
+let holeDiameter = 200; // 원의 지름
+let maxAttempts = 100; // 겹치지 않는 위치를 찾기 위한 최대 시도 횟수
+
+// 추가된 변수 초기화
+let x, y; // 마우스 추적을 위한 변수
 
 function setup() {
   createCanvas(windowWidth, windowHeight);
-  systems = [];
+  x = width / 2;
+  y = height / 2;
+
+  // Define your specific sizes here
+  let holeSizes = [300, 450, 600]; 
+
+  // 초기 파티클 시스템 생성
+  systems.push(new ParticleSystem(createVector(width / 2, height / 2)));
+
+  // 구멍 생성 로직...
+  for (let i = 0; i < numHoles; i++) {
+    let attempts = 0;
+    while (attempts < maxAttempts) {
+      let holeDiameter = random(holeSizes); // Randomize the diameter between 100 and 300
+      let hole = {
+        x: random(holeDiameter / 2, width - holeDiameter / 2),
+        y: random(holeDiameter / 2, height - holeDiameter / 2),
+        diameter: holeDiameter,
+        vx: random(-2, 2),
+        vy: random(-2, 2)
+      };
+
+      let overlapping = false;
+      for (let other of holes) {
+        let d = dist(hole.x, hole.y, other.x, other.y);
+        if (d < hole.diameter / 2 + other.diameter / 2) {
+          overlapping = true;
+          break;
+        }
+      }
+
+      if (!overlapping) {
+        holes.push(hole);
+        break;
+      }
+
+      attempts++;
+    }
+  }
 }
+
 
 function draw() {
-  background(0);
+  background(50); // Set the background color
   
-  // Draw interactive ellipse
-  stroke(255);
-  strokeWeight(10);
-  noFill();
-  ellipse(250, mouseY, 200 + i);
+  // If the "See Through Hole" text has been clicked, we run the particle systems.
+  if (showScreenLayer) {
+    systems.forEach((system) => {
+      system.run();
+      system.addParticle();
+    });
+  }
 
-  // Run the particle system
-  for (let j = systems.length - 1; j >= 0; j--) {
-    systems[j].run();
-    systems[j].addParticle();
+  // Display "See Through Hole" text only if it hasn't been clicked yet.
+  if (!textClicked) {
+    displayInstructions();
   }
   
-  // Display instructions if there are no particle systems
-  if (systems.length === 0) {
-    displayInstructions();
+  // If the text has been clicked, show the masking layer.
+  if (showScreenLayer) {
+    drawMaskingLayer();
+    updateHoles();
   }
 }
 
-function mouseWheel(event) {
-  i += event.delta;
+function drawMaskingLayer() {
+  fill(30);
+  noStroke();
+  rect(0, 0, width, height); // Draw a rectangle to cover the entire screen
+
+  erase(); // Enable eraser
+  holes.forEach(hole => {
+    ellipse(hole.x, hole.y, hole.diameter, hole.diameter); // Draw transparent circles
+  });
+  noErase(); // Disable eraser
 }
 
 function mousePressed() {
-  this.p = new ParticleSystem(createVector(mouseX, mouseY));
-  systems.push(p);
+  // Toggle the masking layer when clicking the "See Through Hole" text
+  if (!textClicked && mouseX > width / 2 - 100 && mouseX < width / 2 + 100 && mouseY > height / 2 - 16 && mouseY < height / 2 + 16) {
+    textClicked = true;
+    showScreenLayer = true;
+  } else if (showScreenLayer) {
+    // Add a new particle system at the mouse position if the masking layer is shown
+    systems.push(new ParticleSystem(createVector(mouseX, mouseY)));
+  }
+}
+
+
+
+  
+
+// 다른 함수들(drawMaskingLayer, updateHoles, displayInstructions, Particle, ParticleSystem, CrazyParticle) 정의는 동일하게 유지합니다.
+
+
+function isHoleSafe(newHole, holes) {
+  for (let hole of holes) {
+    let d = dist(newHole.x, newHole.y, hole.x, hole.y);
+    if (d < newHole.diameter / 2 + hole.diameter / 2) {
+      return false;
+    }
+  }
+  return true;
+}
+
+// drawMaskingLayer, updateHoles, displayInstructions, Particle, ParticleSystem, CrazyParticle 함수 정의는 동일합니다.
+
+  
+
+  
+function updateHoles() {
+  holes.forEach(hole => {
+    hole.x += hole.vx;
+    hole.y += hole.vy;
+
+    // 화면 경계에서 반사
+    if (hole.x <= 0 || hole.x >= width) hole.vx *= -1;
+    if (hole.y <= 0 || hole.y >= height) hole.vy *= -1;
+  });
+}
+
+
+function displayInstructions() {
+  fill(255); // Set text color to white
+  textAlign(CENTER, CENTER);
+  textSize(32);
+  text("See Through Hole", width / 2, height / 2);
+}
+
+function drawMaskingLayer() {
+  fill(20);
+  noStroke();
+
+  // Drawing the masking layer
+  rect(0, 0, width, height); // Draw a rectangle to cover the entire screen
+
+  erase();
+  holes.forEach(hole => {
+    ellipse(hole.x, hole.y, hole.diameter, hole.diameter);
+  });
+  noErase();
 }
 
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
 }
 
-function displayInstructions() {
-  fill(255);
-  textAlign(CENTER);
-  textSize(32);
-  text("See Through Hole", width / 2, height / 2);
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
 }
 
 
 
 
-function setup() {
-  createCanvas(windowWidth, windowHeight);
-  systems = [];
-}
 
-function draw() {
-  background(51);
-  background(0);
-  for (i = 0; i < systems.length; i++) {
-    systems[i].run();
-    systems[i].addParticle();
-  }
-  if (systems.length == 0) {
-    fill(100);
-    textAlign(CENTER);
-    textSize(32);
-    text("See Through Hole", width / 2, height / 2);
-  }
-}
 
-function mousePressed() {
-  this.p = new ParticleSystem(createVector(mouseX, mouseY));
-  systems.push(p);
-}
 
 // A simple Particle class
 let Particle = function(position) {
@@ -95,7 +190,7 @@ Particle.prototype.run = function() {
 Particle.prototype.update = function(){
   this.velocity.add(this.acceleration);
   this.position.add(this.velocity);
-  this.lifespan -= 2;
+  this.lifespan -= 1;
 };
 
 
@@ -104,7 +199,7 @@ Particle.prototype.display = function () {
     stroke(this.color);
     strokeWeight(0.5);
     fill(100, this.lifespan);
-    this.size = random(5, 100);
+    this.size = random(5, 50);
     // 여기에서 this.size를 사용하여 파티클의 크기를 조정
     ellipse(this.position.x, this.position.y, this.size, this.size);
   };
@@ -125,7 +220,7 @@ let ParticleSystem = function (position) {
 
 ParticleSystem.prototype.addParticle = function () {
   // Add either a Particle or CrazyParticle to the system
-  if (int(random(0, 3)) == 0) {
+  if (int(random(0, 10)) == 0) {
     p = new Particle(this.origin);
   }
   else {
@@ -152,7 +247,7 @@ function CrazyParticle(origin) {
   Particle.call(this, origin);
 
   // Initialize our added properties
-  this.theta = 0.0;
+  this.theta = 0.20;
 };
 
 
@@ -167,7 +262,7 @@ CrazyParticle.prototype.constructor = CrazyParticle;
 CrazyParticle.prototype.update=function() {
   Particle.prototype.update.call(this);
   // Increment rotation based on horizontal velocity
-  this.theta += (this.velocity.x * this.velocity.mag()) / 10.0;
+  this.theta += (this.velocity.x * this.velocity.mag()) / 10.10;
 }
 
 // This display() method overrides the parent class display() method
